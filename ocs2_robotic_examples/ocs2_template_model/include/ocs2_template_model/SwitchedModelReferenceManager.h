@@ -1,17 +1,17 @@
 /******************************************************************************
-Copyright (c) 2017, Farbod Farshidian. All rights reserved.
+Copyright (c) 2021, Farbod Farshidian. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
 
-* Redistributions of source code must retain the above copyright notice, this
+ * Redistributions of source code must retain the above copyright notice, this
   list of conditions and the following disclaimer.
 
-* Redistributions in binary form must reproduce the above copyright notice,
+ * Redistributions in binary form must reproduce the above copyright notice,
   this list of conditions and the following disclaimer in the documentation
   and/or other materials provided with the distribution.
 
-* Neither the name of the copyright holder nor the names of its
+ * Neither the name of the copyright holder nor the names of its
   contributors may be used to endorse or promote products derived from
   this software without specific prior written permission.
 
@@ -29,16 +29,36 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <cstddef>
-#include "ocs2_core/Types.h"
+#include <ocs2_core/thread_support/Synchronized.h>
+#include <ocs2_oc/synchronized_module/ReferenceManager.h>
+#include "ocs2_template_model/definitions.h"
 
 namespace ocs2 {
-namespace template_model {
+    namespace template_model {
 
-static constexpr size_t STATE_DIM = 12;
-static constexpr size_t INPUT_DIM = 9;
+/**
+ * Manages the ModeSchedule and the TargetTrajectories for switched model.
+ */
+        class SwitchedModelReferenceManager : public ReferenceManager {
+        public:
+            SwitchedModelReferenceManager();
 
-using flags_array = std::array<bool, 2>;
+            ~SwitchedModelReferenceManager() override = default;
 
-}  // namespace template_model
+            flags_array getFlag(scalar_t time) const;
+
+
+        private:
+            void modifyReferences(scalar_t initTime, scalar_t finalTime, const vector_t &initState,
+                                  TargetTrajectories &targetTrajectories,
+                                  ModeSchedule &modeSchedule) override;
+
+            mutable scalar_t next_switch_time = 0.5;
+            mutable scalar_t current_time = 0.0;
+            mutable bool switch_flag = false;
+            mutable flags_array flags;
+
+        };
+
+    }  // namespace legged_robot
 }  // namespace ocs2

@@ -27,42 +27,46 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************************************************************/
 
-#include "ocs2_legged_robot/initialization/LeggedRobotInitializer.h"
-
-#include "ocs2_legged_robot/common/utils.h"
-
-#include <ocs2_centroidal_model/AccessHelperFunctions.h>
+#include "ocs2_template_model/SwitchedModelReferenceManager.h"
 
 namespace ocs2 {
-namespace legged_robot {
+    namespace template_model {
 
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-LeggedRobotInitializer::LeggedRobotInitializer(CentroidalModelInfo info, const SwitchedModelReferenceManager& referenceManager,
-                                               bool extendNormalizedMomentum)
-    : info_(std::move(info)), referenceManagerPtr_(&referenceManager), extendNormalizedMomentum_(extendNormalizedMomentum) {}
+        SwitchedModelReferenceManager::SwitchedModelReferenceManager()
+                : ReferenceManager(TargetTrajectories(), ModeSchedule()) {
+            flags[0] = true;
+            flags[1] = false;
+        }
 
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-LeggedRobotInitializer* LeggedRobotInitializer::clone() const {
-  return new LeggedRobotInitializer(*this);
-}
+        flags_array SwitchedModelReferenceManager::getFlag(scalar_t time) const {
+            flags_array flagsArray = flags;
+            if (time > next_switch_time) {
+                flagsArray[0] = !flags[0];
+                flagsArray[1] = !flags[1];
+            }
+            return flagsArray;
+        }
 
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-void LeggedRobotInitializer::compute(scalar_t time, const vector_t& state, scalar_t nextTime, vector_t& input, vector_t& nextState) {
-  const auto contactFlags = referenceManagerPtr_->getContactFlags(time);
-  input = weightCompensatingInput(info_, contactFlags);
-  nextState = state;
-  nextState.setZero();
-  input.setZero();
-  if (!extendNormalizedMomentum_) {
-    centroidal_model::getNormalizedMomentum(nextState, info_).setZero();
-  }
-}
+        void SwitchedModelReferenceManager::modifyReferences(scalar_t initTime, scalar_t finalTime,
+                                                             const vector_t &initState,
+                                                             TargetTrajectories &targetTrajectories,
+                                                             ModeSchedule &modeSchedule) {
+            current_time = initTime;
+            if (next_switch_time < current_time) {
+                next_switch_time += 0.5;
+                flags[0] = !flags[0];
+                flags[1] = !flags[1];
+            }
+        }
 
-}  // namespace legged_robot
+    }  // namespace legged_robot
 }  // namespace ocs2

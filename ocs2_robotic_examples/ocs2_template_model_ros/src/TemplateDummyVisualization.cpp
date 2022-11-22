@@ -4,14 +4,14 @@ Copyright (c) 2017, Farbod Farshidian. All rights reserved.
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
 
-* Redistributions of source code must retain the above copyright notice, this
+ * Redistributions of source code must retain the above copyright notice, this
   list of conditions and the following disclaimer.
 
-* Redistributions in binary form must reproduce the above copyright notice,
+ * Redistributions in binary form must reproduce the above copyright notice,
   this list of conditions and the following disclaimer in the documentation
   and/or other materials provided with the distribution.
 
-* Neither the name of the copyright holder nor the names of its
+ * Neither the name of the copyright holder nor the names of its
   contributors may be used to endorse or promote products derived from
   this software without specific prior written permission.
 
@@ -25,20 +25,31 @@ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-******************************************************************************/
+ ******************************************************************************/
 
-#pragma once
-
-#include <cstddef>
-#include "ocs2_core/Types.h"
+#include "ocs2_template_model_ros/TemplateModelDummyVisualization.h"
 
 namespace ocs2 {
-namespace template_model {
+namespace double_integrator {
 
-static constexpr size_t STATE_DIM = 12;
-static constexpr size_t INPUT_DIM = 9;
+void TemplateDummyVisualization::launchVisualizerNode(ros::NodeHandle& nodeHandle) {
+  jointPublisher_ = nodeHandle.advertise<sensor_msgs::JointState>("joint_states", 1);
+}
 
-using flags_array = std::array<bool, 2>;
+void TemplateDummyVisualization::update(const SystemObservation& observation, const PrimalSolution& policy,
+                                        const CommandData& command) {
+  const auto& targetTrajectories = command.mpcTargetTrajectories_;
+  sensor_msgs::JointState joint_state;
+  joint_state.header.stamp = ros::Time::now();
+  joint_state.name.resize(2);
+  joint_state.position.resize(2);
+  joint_state.name[0] = "slider_to_cart";
+  joint_state.position[0] = observation.state(0);
+  joint_state.name[1] = "slider_to_target";
+  joint_state.position[1] = targetTrajectories.stateTrajectory[0](0);
 
-}  // namespace template_model
+  jointPublisher_.publish(joint_state);
+}
+
+}  // namespace double_integrator
 }  // namespace ocs2

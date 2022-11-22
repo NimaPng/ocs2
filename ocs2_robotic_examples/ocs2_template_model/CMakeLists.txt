@@ -9,7 +9,7 @@ set(CATKIN_PACKAGE_DEPENDENCIES
         ocs2_core
         ocs2_mpc
         ocs2_ddp
-        ocs2_ddp
+        ocs2_sqp
         ocs2_python_interface
         ocs2_robotic_tools
         )
@@ -63,6 +63,12 @@ include_directories(
 # double integrator interface library
 add_library(${PROJECT_NAME}
         src/TemplateModelInterface.cpp
+        src/TemplateModelDynamics.cpp
+        src/StateConstraints.cpp
+        src/MyInitializer.cpp
+        src/SwitchedModelReferenceManager.cpp
+        src/InputEqualityConstraints.cpp
+        src/InputInequalityConstriants.cpp
         )
 add_dependencies(${PROJECT_NAME}
         ${catkin_EXPORTED_TARGETS}

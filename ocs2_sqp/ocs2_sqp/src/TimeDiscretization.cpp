@@ -33,84 +33,84 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace ocs2 {
 
-scalar_t getInterpolationTime(const AnnotatedTime& annotatedTime) {
-  return annotatedTime.time + numeric_traits::limitEpsilon<scalar_t>();
-}
-
-scalar_t getIntervalStart(const AnnotatedTime& start) {
-  scalar_t adaptedStart = start.time;
-  if (start.event == AnnotatedTime::Event::PostEvent) {
-    adaptedStart += numeric_traits::weakEpsilon<scalar_t>();
-  }
-  return adaptedStart;
-}
-
-scalar_t getIntervalEnd(const AnnotatedTime& end) {
-  scalar_t adaptedEnd = end.time;
-  if (end.event == AnnotatedTime::Event::PreEvent) {
-    adaptedEnd -= numeric_traits::weakEpsilon<scalar_t>();
-  }
-  return adaptedEnd;
-}
-
-scalar_t getIntervalDuration(const AnnotatedTime& start, const AnnotatedTime& end) {
-  return getIntervalEnd(end) - getIntervalStart(start);
-}
-
-std::vector<AnnotatedTime> timeDiscretizationWithEvents(scalar_t initTime, scalar_t finalTime, scalar_t dt,
-                                                        const scalar_array_t& eventTimes, scalar_t dt_min) {
-  assert(dt > 0);
-  assert(finalTime > initTime);
-  std::vector<AnnotatedTime> timeDiscretization;
-
-  // Initialize
-  timeDiscretization.emplace_back(initTime, AnnotatedTime::Event::None);
-  scalar_t nextEventIdx = lookup::findIndexInTimeArray(eventTimes, initTime);
-
-  // Fill iteratively with pre event, post events are added later
-  AnnotatedTime nextNode = timeDiscretization.back();
-  while (timeDiscretization.back().time < finalTime) {
-    nextNode.time = nextNode.time + dt;
-    nextNode.event = AnnotatedTime::Event::None;
-
-    // Check if an event has passed
-    if (nextEventIdx < eventTimes.size() && nextNode.time >= eventTimes[nextEventIdx]) {
-      nextNode.time = eventTimes[nextEventIdx];
-      nextNode.event = AnnotatedTime::Event::PreEvent;
-      nextEventIdx++;
+    scalar_t getInterpolationTime(const AnnotatedTime &annotatedTime) {
+        return annotatedTime.time + numeric_traits::limitEpsilon<scalar_t>();
     }
 
-    // Check if final time has passed
-    if (nextNode.time >= finalTime) {
-      nextNode.time = finalTime;
-      nextNode.event = AnnotatedTime::Event::None;
+    scalar_t getIntervalStart(const AnnotatedTime &start) {
+        scalar_t adaptedStart = start.time;
+        if (start.event == AnnotatedTime::Event::PostEvent) {
+            adaptedStart += numeric_traits::weakEpsilon<scalar_t>();
+        }
+        return adaptedStart;
     }
 
-    if (nextNode.time > timeDiscretization.back().time + dt_min) {
-      timeDiscretization.push_back(nextNode);
-    } else {  // Points are close together -> overwrite the old point
-      timeDiscretization.back() = nextNode;
+    scalar_t getIntervalEnd(const AnnotatedTime &end) {
+        scalar_t adaptedEnd = end.time;
+        if (end.event == AnnotatedTime::Event::PreEvent) {
+            adaptedEnd -= numeric_traits::weakEpsilon<scalar_t>();
+        }
+        return adaptedEnd;
     }
-  }
 
-  // Skip events at beginning of horizon
-  if (timeDiscretization.front().event == AnnotatedTime::Event::PreEvent) {
-    timeDiscretization.front().event = AnnotatedTime::Event::PostEvent;
-  }
-
-  // Duplicate all preEvents to postEvents
-  std::vector<AnnotatedTime> timeDiscretizationWithDoubleEvents;
-  timeDiscretizationWithDoubleEvents.reserve(2 * timeDiscretization.size());  // upper bound on size
-
-  for (const auto& t : timeDiscretization) {
-    timeDiscretizationWithDoubleEvents.push_back(t);
-    if (t.event == AnnotatedTime::Event::PreEvent) {
-      timeDiscretizationWithDoubleEvents.push_back(t);
-      timeDiscretizationWithDoubleEvents.back().event = AnnotatedTime::Event::PostEvent;
+    scalar_t getIntervalDuration(const AnnotatedTime &start, const AnnotatedTime &end) {
+        return getIntervalEnd(end) - getIntervalStart(start);
     }
-  }
 
-  return timeDiscretizationWithDoubleEvents;
-}
+    std::vector<AnnotatedTime> timeDiscretizationWithEvents(scalar_t initTime, scalar_t finalTime, scalar_t dt,
+                                                            const scalar_array_t &eventTimes, scalar_t dt_min) {
+        assert(dt > 0);
+        assert(finalTime > initTime);
+        std::vector<AnnotatedTime> timeDiscretization;
+
+        // Initialize
+        timeDiscretization.emplace_back(initTime, AnnotatedTime::Event::None);
+        scalar_t nextEventIdx = lookup::findIndexInTimeArray(eventTimes, initTime);
+
+        // Fill iteratively with pre event, post events are added later
+        AnnotatedTime nextNode = timeDiscretization.back();
+        while (timeDiscretization.back().time < finalTime) {
+            nextNode.time = nextNode.time + dt;
+            nextNode.event = AnnotatedTime::Event::None;
+
+            // Check if an event has passed
+            if (nextEventIdx < eventTimes.size() && nextNode.time >= eventTimes[nextEventIdx]) {
+                nextNode.time = eventTimes[nextEventIdx];
+                nextNode.event = AnnotatedTime::Event::PreEvent;
+                nextEventIdx++;
+            }
+
+            // Check if final time has passed
+            if (nextNode.time >= finalTime) {
+                nextNode.time = finalTime;
+                nextNode.event = AnnotatedTime::Event::None;
+            }
+
+            if (nextNode.time > timeDiscretization.back().time + dt_min) {
+                timeDiscretization.push_back(nextNode);
+            } else {  // Points are close together -> overwrite the old point
+                timeDiscretization.back() = nextNode;
+            }
+        }
+
+        // Skip events at beginning of horizon
+        if (timeDiscretization.front().event == AnnotatedTime::Event::PreEvent) {
+            timeDiscretization.front().event = AnnotatedTime::Event::PostEvent;
+        }
+
+        // Duplicate all preEvents to postEvents
+        std::vector<AnnotatedTime> timeDiscretizationWithDoubleEvents;
+        timeDiscretizationWithDoubleEvents.reserve(2 * timeDiscretization.size());  // upper bound on size
+
+        for (const auto &t: timeDiscretization) {
+            timeDiscretizationWithDoubleEvents.push_back(t);
+            if (t.event == AnnotatedTime::Event::PreEvent) {
+                timeDiscretizationWithDoubleEvents.push_back(t);
+                timeDiscretizationWithDoubleEvents.back().event = AnnotatedTime::Event::PostEvent;
+            }
+        }
+
+        return timeDiscretizationWithDoubleEvents;
+    }
 
 }  // namespace ocs2

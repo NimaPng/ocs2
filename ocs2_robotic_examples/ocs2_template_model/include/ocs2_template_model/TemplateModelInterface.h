@@ -37,57 +37,65 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ocs2_oc/rollout/TimeTriggeredRollout.h>
 #include <ocs2_oc/synchronized_module/ReferenceManager.h>
 #include <ocs2_robotic_tools/common/RobotInterface.h>
+#include <ocs2_sqp/MultipleShootingSettings.h>
 
-#include <ocs2_robotic_tools/common/RobotInterface.h>
-
-// Double Integrator
-#include "definitions.h"
+#include "ocs2_template_model/definitions.h"
+#include "ocs2_template_model/TemplateModelDynamics.h"
+#include "ocs2_template_model/MyInitializer.h"
+#include "ocs2_template_model/StateConstraints.h"
+#include "ocs2_template_model/SwitchedModelReferenceManager.h"
+#include "ocs2_template_model/InputEqualityConstraints.h"
+#include "ocs2_template_model/InputInequalityConstriants.h"
 
 namespace ocs2 {
-namespace template_model {
+    namespace template_model {
 
-class TemplateModelInterface final : public RobotInterface {
- public:
-  /**
-   * Constructor
-   * @param [in] taskFile: The absolute path to the configuration file for the MPC.
-   * @param [in] libraryFolder: The absolute path to the directory to generate CppAD library into.
-   * @param [in] verbose: Load the settings in verbose.
-   */
-  TemplateModelInterface(const std::string& taskFile, const std::string& libraryFolder, bool verbose = true);
+        class TemplateModelInterface final : public RobotInterface {
+        public:
+            /**
+             * Constructor
+             * @param [in] taskFile: The absolute path to the configuration file for the MPC.
+             * @param [in] libraryFolder: The absolute path to the directory to generate CppAD library into.
+             * @param [in] verbose: Load the settings in verbose.
+             */
+            TemplateModelInterface(const std::string &taskFile, const std::string &libraryFolder, bool verbose = true);
 
-  /** Destructor */
-  ~TemplateModelInterface() override = default;
+            /** Destructor */
+            ~TemplateModelInterface() override = default;
 
-  const vector_t& getInitialState() { return initialState_; }
+            const vector_t &getInitialState() { return initialState_; }
 
-  const vector_t& getInitialTarget() { return finalGoal_; }
+            const vector_t &getInitialTarget() { return finalGoal_; }
 
-  ddp::Settings& ddpSettings() { return ddpSettings_; }
+            ddp::Settings &ddpSettings() { return ddpSettings_; }
 
-  mpc::Settings& mpcSettings() { return mpcSettings_; }
+            mpc::Settings &mpcSettings() { return mpcSettings_; }
 
-  const OptimalControlProblem& getOptimalControlProblem() const override { return problem_; }
+            multiple_shooting::Settings &sqpSettings() { return sqpSettings_; }
 
-  std::shared_ptr<ReferenceManagerInterface> getReferenceManagerPtr() const override { return referenceManagerPtr_; }
+            const OptimalControlProblem &getOptimalControlProblem() const override { return problem_; }
 
-  const RolloutBase& getRollout() const { return *rolloutPtr_; }
+            std::shared_ptr<ReferenceManagerInterface>
+            getReferenceManagerPtr() const override { return referenceManagerPtr_; }
 
-  const Initializer& getInitializer() const override { return *linearSystemInitializerPtr_; }
+            const RolloutBase &getRollout() const { return *rolloutPtr_; }
 
- private:
-  ddp::Settings ddpSettings_;
-  mpc::Settings mpcSettings_;
+            const Initializer &getInitializer() const override { return *initializerPtr_; }
 
-  OptimalControlProblem problem_;
-  std::shared_ptr<ReferenceManager> referenceManagerPtr_;
+        private:
+            ddp::Settings ddpSettings_;
+            mpc::Settings mpcSettings_;
+            multiple_shooting::Settings sqpSettings_;
 
-  std::unique_ptr<RolloutBase> rolloutPtr_;
-  std::unique_ptr<Initializer> linearSystemInitializerPtr_;
+            OptimalControlProblem problem_;
+            std::shared_ptr<SwitchedModelReferenceManager> referenceManagerPtr_;
 
-  vector_t initialState_{STATE_DIM};
-  vector_t finalGoal_{STATE_DIM};
-};
+            std::unique_ptr<RolloutBase> rolloutPtr_;
+            std::unique_ptr<Initializer> initializerPtr_;
 
-}  // namespace double_integrator
+            vector_t initialState_{STATE_DIM};
+            vector_t finalGoal_{STATE_DIM};
+        };
+
+    }  // namespace double_integrator
 }  // namespace ocs2
